@@ -1,0 +1,17 @@
+[Unit]
+Description=Stirling PDF production service
+Requires=docker.service
+After=docker.service network-online.target tailscaled.service
+Wants=network-online.target tailscaled.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/stirling-pdf
+ExecStart=/usr/bin/docker compose --env-file /opt/stirling-pdf/.env -f /opt/stirling-pdf/compose.yml up -d
+ExecStop=/usr/bin/docker compose --env-file /opt/stirling-pdf/.env -f /opt/stirling-pdf/compose.yml down
+TimeoutStartSec=0
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+/srv/stirling-pdf/logs/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su stirlingpdf stirlingpdf
+}

@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily encrypted Stirling PDF backup
+
+[Timer]
+OnCalendar=*-*-* 02:15:00
+RandomizedDelaySec=45m
+Persistent=true
+Unit=stirling-pdf-backup.service
+
+[Install]
+WantedBy=timers.target

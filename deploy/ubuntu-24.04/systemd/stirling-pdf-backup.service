@@ -1,0 +1,11 @@
+[Unit]
+Description=Encrypted Stirling PDF backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/stirling-pdf/bin/backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
