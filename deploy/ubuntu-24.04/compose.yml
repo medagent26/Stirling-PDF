@@ -1,0 +1,66 @@
+name: stirling-pdf
+
+services:
+  stirling-pdf:
+    container_name: stirling-pdf
+    image: "${STIRLING_IMAGE:?Set STIRLING_IMAGE in /opt/stirling-pdf/.env}"
+    restart: unless-stopped
+    stop_grace_period: 2m
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /srv/stirling-pdf/config:/configs
+      - /srv/stirling-pdf/logs:/logs
+      - /srv/stirling-pdf/customFiles:/customFiles
+      - /srv/stirling-pdf/pipeline:/pipeline
+      - /srv/stirling-pdf/storage:/storage
+      - /srv/stirling-pdf/tessdata:/usr/share/tessdata:ro
+    environment:
+      DISABLE_ADDITIONAL_FEATURES: "false"
+      ENABLE_SAAS: "false"
+      DOCKER_ENABLE_SECURITY: "true"
+      SECURITY_ENABLELOGIN: "true"
+      SECURITY_LOGINMETHOD: "normal"
+      SECURITY_OAUTH2_ENABLED: "false"
+      SECURITY_SAML2_ENABLED: "false"
+      SECURITY_INITIALLOGIN_USERNAME: "${SECURITY_INITIALLOGIN_USERNAME:-admin}"
+      SECURITY_INITIALLOGIN_PASSWORD: "${SECURITY_INITIALLOGIN_PASSWORD:-}"
+      SYSTEM_CORSALLOWEDORIGINS: "${STIRLING_PUBLIC_URL:?Set the Tailscale HTTPS origin}"
+      SYSTEM_BACKENDURL: "${STIRLING_PUBLIC_URL}"
+      SYSTEM_FRONTENDURL: "${STIRLING_PUBLIC_URL}"
+      SYSTEMFILEUPLOADLIMIT: "500MB"
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: "500MB"
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: "500MB"
+      SHOW_SURVEY: "false"
+      STIRLING_JVM_PROFILE: "balanced"
+      JAVA_CUSTOM_OPTS: "${STIRLING_JAVA_OPTS:--Xms1g -Xmx4g}"
+      PUID: "${STIRLING_PUID:-10001}"
+      PGID: "${STIRLING_PGID:-10001}"
+      UMASK: "027"
+    mem_limit: "${STIRLING_MEMORY_LIMIT:-8g}"
+    mem_reservation: "2g"
+    cpus: "${STIRLING_CPU_LIMIT:-3.0}"
+    pids_limit: 1024
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS --max-time 10 http://localhost:8080/api/v1/info/status | grep -q 'UP'",
+        ]
+      interval: 30s
+      timeout: 15s
+      start_period: 120s
+      retries: 5
+    logging:
+      driver: local
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - stirling
+
+networks:
+  stirling:
+    driver: bridge

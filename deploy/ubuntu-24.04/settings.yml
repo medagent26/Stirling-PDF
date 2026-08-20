@@ -1,0 +1,143 @@
+security:
+  enableLogin: true
+  loginMethod: normal
+  initialLogin:
+    username: ""
+    password: ""
+  oauth2:
+    enabled: false
+  saml2:
+    enabled: false
+
+premium:
+  enabled: false
+  key: 00000000-0000-0000-0000-000000000000
+  proFeatures:
+    googleDrive:
+      enabled: false
+
+mail:
+  enabled: false
+  enableInvites: false
+
+telegram:
+  enabled: false
+  botToken: ""
+  botUsername: ""
+  pipelineInboxFolder: telegram
+  customFolderSuffix: false
+  enableAllowUserIDs: true
+  allowUserIDs: [0]
+  enableAllowChannelIDs: true
+  allowChannelIDs: [0]
+
+system:
+  defaultLocale: no-NB
+  googlevisibility: false
+  showUpdate: false
+  showUpdateOnlyAdmin: true
+  enableAnalytics: false
+  enablePosthog: false
+  enableScarf: false
+  enableUrlToPDF: false
+  disableSanitize: false
+  enableMobileScanner: false
+  enableMobileSignature: false
+  # Resolved to the single Tailscale HTTPS origin by SYSTEM_CORSALLOWEDORIGINS.
+  corsAllowedOrigins: []
+  # Resolved from SYSTEMFILEUPLOADLIMIT and the matching Spring multipart limits.
+  fileUploadLimit: 500MB
+  customPaths:
+    pipeline:
+      pipelineDir: /pipeline
+      watchedFoldersDir: /pipeline/watchedFolders
+      watchedFoldersDirs: [/pipeline/watchedFolders]
+      finishedFoldersDir: /pipeline/finishedFolders
+  databaseBackup:
+    cron: "0 0 0 * * ?"
+
+storage:
+  enabled: true
+  provider: local
+  local:
+    basePath: /storage
+  sharing:
+    enabled: false
+    linkEnabled: false
+    emailEnabled: false
+  signing:
+    enabled: false
+  encryption:
+    enabled: false
+
+autoPipeline:
+  outputFolder: /pipeline/finishedFolders
+  fileReadiness:
+    enabled: true
+    settleTimeMillis: 10000
+    sizeCheckDelayMillis: 1000
+    allowedExtensions: [pdf, tif, tiff, png, jpg, jpeg]
+
+endpoints:
+  toRemove: []
+  groupsToRemove: []
+
+metrics:
+  enabled: true
+
+processExecutor:
+  autoUnoServer: true
+  sessionLimit:
+    libreOfficeSessionLimit: 1
+    pdfToHtmlSessionLimit: 1
+    qpdfSessionLimit: 2
+    tesseractSessionLimit: 1
+    pythonOpenCvSessionLimit: 2
+    weasyPrintSessionLimit: 2
+    installAppSessionLimit: 1
+    calibreSessionLimit: 1
+    imageMagickSessionLimit: 2
+    ghostscriptSessionLimit: 2
+    ocrMyPdfSessionLimit: 1
+
+aiEngine:
+  enabled: false
+  url: http://stirling-engine:5001
+
+policies:
+  allowedFolderRoots:
+    - /pipeline/watchedFolders
+    - /pipeline/finishedFolders
+  watchQuietPeriodMs: 1000
+  watchReconcileSeconds: 300
+
+mcp:
+  enabled: true
+  auth:
+    mode: apikey
+  scopesEnabled: true
+  maxRequestBytes: 16777216
+  maxInlineResponseBytes: 4194304
+  allowedOperations:
+    - compress-pdf
+    - file-to-pdf
+    - flatten
+    - get-info-on-pdf
+    - img-to-pdf
+    - merge-pdfs
+    - ocr-pdf
+    - pdf-to-img
+    - pdf-to-text
+    - repair
+    - rotate-pdf
+    - sanitize-pdf
+    - split-pages
+    - validate-signature
+  blockedOperations:
+    - add-password
+    - change-permissions
+    - remove-password
+  engineCapabilityRefreshMinutes: 5
+
+cluster:
+  enabled: false

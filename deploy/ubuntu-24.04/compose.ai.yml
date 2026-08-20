@@ -1,0 +1,69 @@
+services:
+  stirling-pdf:
+    environment:
+      AIENGINE_ENABLED: "true"
+      AIENGINE_URL: "http://stirling-engine:5001"
+      AIENGINE_PUSHCONFIGTOENGINE: "true"
+      AIENGINE_MODELS_PROVIDER: "custom"
+      AIENGINE_MODELS_SMARTMODEL: "${AI_SMART_MODEL:?Set AI_SMART_MODEL}"
+      AIENGINE_MODELS_FASTMODEL: "${AI_FAST_MODEL:?Set AI_FAST_MODEL}"
+      AIENGINE_MODELS_APIKEY: "${AI_OPENAI_API_KEY:-}"
+      AIENGINE_MODELS_BASEURL: "${AI_OPENAI_BASE_URL:?Set AI_OPENAI_BASE_URL}"
+      AIENGINE_RAG_EMBEDDINGPROVIDER: "custom"
+      AIENGINE_RAG_EMBEDDINGMODEL: "${AI_EMBEDDING_MODEL:?Set AI_EMBEDDING_MODEL}"
+      AIENGINE_RAG_EMBEDDINGAPIKEY: "${AI_OPENAI_API_KEY:-}"
+      AIENGINE_RAG_EMBEDDINGBASEURL: "${AI_OPENAI_BASE_URL}"
+      AIENGINE_LIMITS_MODELMAXCONCURRENCY: "${AI_MODEL_MAX_CONCURRENCY:-4}"
+      STIRLING_ENGINE_SHARED_SECRET: "${STIRLING_ENGINE_SHARED_SECRET:?Set the engine secret}"
+    depends_on:
+      stirling-engine:
+        condition: service_healthy
+
+  stirling-engine:
+    container_name: stirling-engine
+    build:
+      context: "${STIRLING_SOURCE_DIR:-/home/runner/work/Stirling-PDF/Stirling-PDF}"
+      dockerfile: engine/Dockerfile
+    image: "stirling-pdf-engine:2.14.3-local"
+    restart: unless-stopped
+    stop_grace_period: 1m
+    expose:
+      - "5001"
+    volumes:
+      - /srv/stirling-pdf/engine-data:/app/engine/data
+    environment:
+      STIRLING_ENGINE_SHARED_SECRET: "${STIRLING_ENGINE_SHARED_SECRET:?Set the engine secret}"
+      STIRLING_ENGINE_REQUIRE_AUTH: "true"
+      STIRLING_REQUIRE_USER_ID: "true"
+      STIRLING_POSTHOG_ENABLED: "false"
+      STIRLING_POSTHOG_API_KEY: ""
+      STIRLING_POSTHOG_HOST: ""
+      STIRLING_ALLOW_CONFIG_PUSH: "true"
+      STIRLING_DOCUMENTS_BACKEND: "sqlite"
+      STIRLING_DOCUMENTS_SQLITE_PATH: "data/rag.db"
+      STIRLING_SMART_MODEL: "openai:${AI_SMART_MODEL:?Set AI_SMART_MODEL}"
+      STIRLING_FAST_MODEL: "openai:${AI_FAST_MODEL:?Set AI_FAST_MODEL}"
+      STIRLING_RAG_EMBEDDING_MODEL: "openai:${AI_EMBEDDING_MODEL:?Set AI_EMBEDDING_MODEL}"
+      STIRLING_MODEL_MAX_CONCURRENCY: "${AI_MODEL_MAX_CONCURRENCY:-4}"
+      STIRLING_CHUNKED_REASONER_CONCURRENCY: "2"
+      STIRLING_ENGINE_WORKERS: "2"
+      OPENAI_BASE_URL: "${AI_OPENAI_BASE_URL:?Set AI_OPENAI_BASE_URL}"
+      OPENAI_API_KEY: "${AI_OPENAI_API_KEY:-not-required}"
+    mem_limit: "${STIRLING_ENGINE_MEMORY_LIMIT:-4g}"
+    cpus: "${STIRLING_ENGINE_CPU_LIMIT:-2.0}"
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS --max-time 5 http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+    logging:
+      driver: local
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - stirling
