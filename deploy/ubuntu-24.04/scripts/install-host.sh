@@ -6,8 +6,10 @@ readonly DATA_ROOT="/srv/stirling-pdf"
 readonly STIRLING_USER="stirlingpdf"
 readonly STIRLING_UID="10001"
 readonly STIRLING_GID="10001"
-readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-readonly BUNDLE_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+BUNDLE_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+readonly BUNDLE_DIR
 
 die() {
   printf 'ERROR: %s\n' "$*" >&2
@@ -77,17 +79,25 @@ install_packages() {
 }
 
 create_user_and_directories() {
-  if ! getent group "$STIRLING_GID" >/dev/null; then
-    groupadd --system --gid "$STIRLING_GID" "$STIRLING_USER"
-  elif ! getent group "$STIRLING_USER" >/dev/null; then
+  if getent group "$STIRLING_USER" >/dev/null; then
+    [ "$(getent group "$STIRLING_USER" | cut -d: -f3)" = "$STIRLING_GID" ] ||
+      die "group ${STIRLING_USER} exists with the wrong GID"
+  elif getent group "$STIRLING_GID" >/dev/null; then
     die "GID ${STIRLING_GID} is already assigned to another group"
+  else
+    groupadd --system --gid "$STIRLING_GID" "$STIRLING_USER"
   fi
 
-  if ! getent passwd "$STIRLING_UID" >/dev/null; then
+  if id "$STIRLING_USER" >/dev/null 2>&1; then
+    [ "$(id -u "$STIRLING_USER")" = "$STIRLING_UID" ] ||
+      die "user ${STIRLING_USER} exists with the wrong UID"
+    [ "$(id -g "$STIRLING_USER")" = "$STIRLING_GID" ] ||
+      die "user ${STIRLING_USER} exists with the wrong primary GID"
+  elif getent passwd "$STIRLING_UID" >/dev/null; then
+    die "UID ${STIRLING_UID} is already assigned to another user"
+  else
     useradd --system --uid "$STIRLING_UID" --gid "$STIRLING_GID" \
       --home-dir "$DATA_ROOT" --no-create-home --shell /usr/sbin/nologin "$STIRLING_USER"
-  elif ! id "$STIRLING_USER" >/dev/null 2>&1; then
-    die "UID ${STIRLING_UID} is already assigned to another user"
   fi
 
   install -d -o root -g root -m 0750 "$DEPLOY_ROOT" "$DEPLOY_ROOT/bin"
@@ -134,11 +144,16 @@ set_env_value() {
 
 install_configuration() {
   local public_url="${STIRLING_PUBLIC_URL:-}"
+  local backup_recipient="${BACKUP_AGE_RECIPIENT:-}"
   [[ "$public_url" =~ ^https://[A-Za-z0-9.-]+\.ts\.net$ ]] ||
     die "set STIRLING_PUBLIC_URL to the Tailscale HTTPS origin (*.ts.net)"
+  [[ "$backup_recipient" == age1* ]] ||
+    die "set BACKUP_AGE_RECIPIENT to an age public recipient whose identity is stored off-host"
 
   install -o root -g root -m 0644 "$BUNDLE_DIR/compose.yml" "$DEPLOY_ROOT/compose.yml"
   install -o root -g root -m 0644 "$BUNDLE_DIR/compose.ai.yml" "$DEPLOY_ROOT/compose.ai.yml"
+  install -o root -g root -m 0644 \
+    "$BUNDLE_DIR/systemd/stirling-pdf-ai.conf" "$DEPLOY_ROOT/stirling-pdf-ai.conf"
   install -o "$STIRLING_UID" -g "$STIRLING_GID" -m 0640 \
     "$BUNDLE_DIR/settings.yml" "$DATA_ROOT/config/settings.yml"
   install -o root -g root -m 0750 "$BUNDLE_DIR/scripts/backup.sh" "$DEPLOY_ROOT/bin/backup.sh"
@@ -147,8 +162,13 @@ install_configuration() {
 
   if [ ! -e "$DEPLOY_ROOT/.env" ]; then
     install -o root -g root -m 0600 "$BUNDLE_DIR/.env.example" "$DEPLOY_ROOT/.env"
-    set_env_value "$DEPLOY_ROOT/.env" STIRLING_PUBLIC_URL "$public_url"
+  fi
+  set_env_value "$DEPLOY_ROOT/.env" STIRLING_PUBLIC_URL "$public_url"
+  set_env_value "$DEPLOY_ROOT/.env" BACKUP_AGE_RECIPIENT "$backup_recipient"
+  if grep -q '^SECURITY_INITIALLOGIN_PASSWORD=GENERATED_BY_INSTALL_HOST$' "$DEPLOY_ROOT/.env"; then
     set_env_value "$DEPLOY_ROOT/.env" SECURITY_INITIALLOGIN_PASSWORD "$(openssl rand -hex 24)"
+  fi
+  if grep -q '^STIRLING_ENGINE_SHARED_SECRET=GENERATED_BY_INSTALL_HOST$' "$DEPLOY_ROOT/.env"; then
     set_env_value "$DEPLOY_ROOT/.env" STIRLING_ENGINE_SHARED_SECRET "$(openssl rand -hex 32)"
   fi
 

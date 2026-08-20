@@ -144,8 +144,11 @@ esac
 no_key_code="$(curl -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 30 \
   -H 'Content-Type: application/json' \
   --data-binary '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' "${base_url}/mcp" || true)"
-[ "$no_key_code" = "401" ] && pass "MCP without a key returns 401" ||
+if [ "$no_key_code" = "401" ]; then
+  pass "MCP without a key returns 401"
+else
   fail "MCP without a key returned ${no_key_code:-none}"
+fi
 
 initialize="$(rpc '{"jsonrpc":"2.0","id":2,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"production-smoke","version":"1"}}}' || true)"
 if [ "$(printf '%s' "$initialize" | jq -r '.result.protocolVersion // empty')" = "2025-06-18" ]; then

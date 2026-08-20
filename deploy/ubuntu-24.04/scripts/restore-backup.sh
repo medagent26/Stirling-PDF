@@ -8,7 +8,8 @@ usage() {
 }
 
 [ "$#" -eq 2 ] || usage
-readonly BACKUP="$(readlink -f "$1")"
+BACKUP="$(readlink -f "$1")"
+readonly BACKUP
 readonly TARGET="$2"
 readonly IDENTITY="${AGE_IDENTITY_FILE:-}"
 
@@ -20,10 +21,10 @@ readonly IDENTITY="${AGE_IDENTITY_FILE:-}"
   echo "checksum file not found: ${BACKUP}.sha256" >&2
   exit 1
 }
-[ -n "$IDENTITY" ] && [ -f "$IDENTITY" ] || {
+if [ -z "$IDENTITY" ] || [ ! -f "$IDENTITY" ]; then
   echo "AGE_IDENTITY_FILE must point to the offline age identity" >&2
   exit 1
-}
+fi
 [ "$TARGET" != "/srv/stirling-pdf" ] || {
   echo "restore into a separate directory first; live overwrite is refused" >&2
   exit 1
