@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "stirling-pdf": {
+      "type": "streamable_http",
+      "url": "https://stirling-pdf.example-tailnet.ts.net/mcp",
+      "description": "Private Stirling PDF v2.14.3 over Tailscale",
+      "headers": {
+        "X-API-KEY": "${STIRLING_MCP_API_KEY}"
+      }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--init",
+        "--read-only",
+        "--tmpfs=/tmp:rw,noexec,nosuid,size=1g",
+        "--security-opt=no-new-privileges",
+        "mcr.microsoft.com/playwright/mcp:latest@sha256:18c0a9c934004fe9580cc79f1e8e6e6cde7c667348b215335e8a23fd3e509804",
+        "--headless",
+        "--isolated"
+      ],
+      "description": "Playwright MCP in a separate ephemeral container"
+    }
+  }
+}

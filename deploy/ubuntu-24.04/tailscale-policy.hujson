@@ -1,0 +1,46 @@
+{
+  // Replace every example identity before applying this policy.
+  "groups": {
+    "group:stirling-users": [
+      "operator@example.com",
+    ],
+  },
+
+  "tagOwners": {
+    "tag:stirling-pdf": ["autogroup:admin"],
+    "tag:agent-vm": ["autogroup:admin"],
+    "tag:metamcp": ["autogroup:admin"],
+  },
+
+  "grants": [
+    {
+      // Browsers, MetaMCP, and agent VMs reach only Tailscale Serve HTTPS.
+      "src": [
+        "group:stirling-users",
+        "tag:agent-vm",
+        "tag:metamcp",
+      ],
+      "dst": ["tag:stirling-pdf"],
+      "ip": ["tcp:443"],
+    },
+    {
+      // MetaMCP is the sole MCP gateway exposed to agent VMs.
+      "src": ["tag:agent-vm"],
+      "dst": ["tag:metamcp"],
+      "ip": ["tcp:443"],
+    },
+  ],
+
+  "tests": [
+    {
+      "src": "operator@example.com",
+      "accept": ["tag:stirling-pdf:443"],
+      "deny": ["tag:stirling-pdf:8080"],
+    },
+    {
+      "src": "tag:agent-vm",
+      "accept": ["tag:metamcp:443", "tag:stirling-pdf:443"],
+      "deny": ["tag:stirling-pdf:8080"],
+    },
+  ],
+}

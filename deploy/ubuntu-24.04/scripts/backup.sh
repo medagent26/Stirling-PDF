@@ -52,7 +52,10 @@ tar -C "$DATA_ROOT" -czf - \
   config customFiles pipeline storage tessdata engine-data |
   age --encrypt --recipient "$recipient" --output "$partial"
 mv "$partial" "$output"
-sha256sum "$output" >"${output}.sha256"
+(
+  cd "$BACKUP_ROOT"
+  sha256sum "$(basename "$output")" >"$(basename "${output}.sha256")"
+)
 
 if [ "${#running_containers[@]}" -gt 0 ]; then
   docker start "${running_containers[@]}" >/dev/null
