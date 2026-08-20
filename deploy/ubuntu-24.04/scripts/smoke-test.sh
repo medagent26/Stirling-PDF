@@ -86,7 +86,7 @@ rpc() {
 
 extract_file_id() {
   jq -r '
-    [.result.content[]?.text? | try capture("fileId=(?<id>[A-Za-z0-9._-]+)").id catch empty]
+    [.result.content[]?.text? | try capture("fileId=(?<id>[A-Za-z0-9_-]+)").id catch empty]
     | first // empty
   '
 }
@@ -163,9 +163,10 @@ if printf '%s' "$tools" | jq -e \
     (index("stirling_upload") != null) and
     (index("stirling_download") != null) and
     (index("stirling_pages") != null) and
-    (index("stirling_misc") != null)' \
+    (index("stirling_misc") != null) and
+    (index("stirling_convert") != null)' \
   >/dev/null; then
-  pass "MCP tools/list includes upload, download, pages, and misc"
+  pass "MCP tools/list includes upload, download, pages, misc, and convert"
 else
   fail "MCP tools/list is incomplete"
 fi
@@ -233,20 +234,18 @@ else
 fi
 
 if [ -n "$office_file" ]; then
-  if office_input_id="$(upload_file "$office_file")"; then
-    office_response="$(call_operation stirling_convert file-to-pdf "$office_input_id" \
-      "$(basename "$office_file")" '{}' || true)"
-    office_output_id="$(printf '%s' "$office_response" | extract_file_id)"
-    office_output="$(mktemp --suffix=.pdf)"
-    temporary_files+=("$office_output")
-    if [ -n "$office_output_id" ] && download_file "$office_output_id" "$office_output" &&
-      head -c 5 "$office_output" | grep -q '%PDF'; then
-      pass "LibreOffice conversion produced a PDF"
-    else
-      fail "LibreOffice conversion failed"
-    fi
+  office_output="$(mktemp --suffix=.pdf)"
+  temporary_files+=("$office_output")
+  office_code="$(curl -sS -o "$office_output" -w '%{http_code}' \
+    --connect-timeout 10 --max-time 600 \
+    -H "X-API-KEY: ${MCP_API_KEY}" \
+    -F "fileInput=@${office_file}" \
+    "${base_url}/api/v1/convert/file/pdf" || true)"
+  if [ "$office_code" = "200" ] &&
+    head -c 5 "$office_output" | grep -q '%PDF'; then
+    pass "LibreOffice REST conversion produced a PDF"
   else
-    fail "Office sample upload failed"
+    fail "LibreOffice REST conversion failed (HTTP ${office_code:-none})"
   fi
 else
   skip "provide --office-file to test LibreOffice conversion"

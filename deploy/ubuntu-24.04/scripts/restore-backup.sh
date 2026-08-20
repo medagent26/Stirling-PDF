@@ -38,7 +38,7 @@ fi
 install -d -o root -g root -m 0700 "$TARGET"
 age --decrypt --identity "$IDENTITY" "$BACKUP" | tar -xzf - -C "$TARGET"
 
-for required in config pipeline storage tessdata; do
+for required in config customFiles pipeline storage tessdata engine-data; do
   [ -d "$TARGET/$required" ] || {
     echo "restore is incomplete: missing $required" >&2
     exit 1

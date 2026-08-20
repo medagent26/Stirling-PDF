@@ -8,6 +8,7 @@ Wants=network-online.target tailscaled.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/stirling-pdf
+ExecStartPre=/opt/stirling-pdf/bin/set-ai-mode.sh disable
 ExecStart=/usr/bin/docker compose --env-file /opt/stirling-pdf/.env -f /opt/stirling-pdf/compose.yml up -d
 ExecStop=/usr/bin/docker compose --env-file /opt/stirling-pdf/.env -f /opt/stirling-pdf/compose.yml down
 TimeoutStartSec=0

@@ -59,9 +59,11 @@ systemd-filene eies av root.
 ## 1. Forbered Tailscale og backupnøkkel
 
 Aktiver MagicDNS og HTTPS-sertifikater i Tailscale Admin Console. Tilpass og
-valider `tailscale-policy.hujson`, og sett taggene `tag:stirling-pdf`,
+valider `tailscale-policy.hujson`, og flett reglene inn i eksisterende policy
+i stedet for å overskrive andre nødvendige grants. Sett taggene `tag:stirling-pdf`,
 `tag:metamcp` og `tag:agent-vm` på riktige noder. Policyen tillater bare HTTPS
-på port 443; den tillater ikke direkte tilgang til Docker-port 8080.
+på port 443 og administrativ SSH på port 22; den tillater ikke direkte tilgang
+til Docker-port 8080. Behold konsoll/OOB-tilgang mens policyen testes.
 
 Generer age-identiteten på en separat administrasjonsmaskin:
 
@@ -133,8 +135,9 @@ sudo sed -n 's/^SECURITY_INITIALLOGIN_PASSWORD=//p' /opt/stirling-pdf/.env
 1. Logg inn som `admin` over Tailscale HTTPS.
 2. Bytt administratorpassordet.
 3. Opprett en aktiv, ikke-administrativ lokal bruker bare for MCP.
-4. Logg inn som MCP-brukeren og opprett en navngitt nøkkel under
-   **Account → API Keys**.
+4. Logg inn som MCP-brukeren og generer brukerens nøkkel under
+   **Account → API Keys**. `2.14.3` har én lokal API-nøkkel per bruker og støtter
+   ikke server-side nøkkelnavn; merk secret-en `stirling-mcp` i MetaMCP.
 5. Legg nøkkelen direkte i MetaMCP sin secret store. Ikke legg den i denne
    `.env`-filen eller i Claude-konfigurasjoner.
 6. Fjern bootstrap-hemmeligheten og gjenskap containeren:
@@ -144,10 +147,15 @@ sudo sed -i '/^SECURITY_INITIALLOGIN_PASSWORD=/d' /opt/stirling-pdf/.env
 sudo systemctl restart stirling-pdf
 ```
 
-MCP starter med en eksplisitt allow-liste for vanlige konverterings-, OCR-,
-side- og sanitiseringsoperasjoner. Passord- og rettighetsoperasjoner er ikke
+MCP starter med en eksplisitt allow-liste for vanlige OCR-, side-,
+informasjons- og sanitiseringsoperasjoner. Passord- og rettighetsoperasjoner er ikke
 åpnet. Før listen utvides skal `stirling_describe_operation` brukes til å
 gjennomgå katalogen, og security-/password-operasjoner skal risikovurderes.
+
+I `2.14.3` vises `stirling_convert`, men katalogen eksponerer ingen operasjoner
+med todelte converter-stier. LibreOffice-akseptansetesten bruker derfor det
+autentiserte REST-endepunktet `/api/v1/convert/file/pdf`. Dette er en dokumentert
+versjonsbegrensning, ikke en lisensomgåelse.
 
 Grensene er 16 MiB for hele MCP-requesten og 4 MiB for inline-respons. Base64
 øker størrelsen med omtrent 33 prosent. Bruk `stirling_upload` og `fileId` for
@@ -298,7 +306,9 @@ Port 5001 publiseres ikke. Begge containere bruker samme genererte
 `STIRLING_ENGINE_SHARED_SECRET`, engine krever auth, analytics er av og SQLite
 lagres i `/srv/stirling-pdf/engine-data`. Kontroller etter fem minutter at
 MCP-katalogen viser faktiske `stirling_ai`-capabilities. Fjern drop-in og restart
-for å deaktivere AI uten å påvirke OCR eller PDF-verktøy.
+for å deaktivere AI uten å påvirke OCR eller PDF-verktøy. Systemd-enheten bruker
+`set-ai-mode.sh` til å holde den høyt prioriterte `settings.yml`-verdien synkron
+med valgt base- eller AI-modus.
 
 ## 8. Akseptanse og bevis
 
@@ -319,7 +329,7 @@ Ikke lagre nøkkelen i shell history; den sikreste kjøringen er å utelate
 `MCP_API_KEY` og bruke den skjulte prompten.
 
 Skriptet dokumenterer status, HTTPS-UI, 401 uten nøkkel, `initialize`,
-`tools/list`, ekte upload/rotate/download med `fileId`, OCR, LibreOffice,
+`tools/list`, ekte upload/rotate/download med `fileId`, OCR, LibreOffice via REST,
 portbinding og restart-persistens. I tillegg må følgende bevis registreres
 manuelt:
 

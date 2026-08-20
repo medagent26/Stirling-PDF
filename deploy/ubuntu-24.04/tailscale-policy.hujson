@@ -4,6 +4,9 @@
     "group:stirling-users": [
       "operator@example.com",
     ],
+    "group:stirling-admins": [
+      "operator@example.com",
+    ],
   },
 
   "tagOwners": {
@@ -29,12 +32,18 @@
       "dst": ["tag:metamcp"],
       "ip": ["tcp:443"],
     },
+    {
+      // Preserve administrative SSH over Tailscale without exposing it to all users.
+      "src": ["group:stirling-admins"],
+      "dst": ["tag:stirling-pdf"],
+      "ip": ["tcp:22"],
+    },
   ],
 
   "tests": [
     {
       "src": "operator@example.com",
-      "accept": ["tag:stirling-pdf:443"],
+      "accept": ["tag:stirling-pdf:22", "tag:stirling-pdf:443"],
       "deny": ["tag:stirling-pdf:8080"],
     },
     {

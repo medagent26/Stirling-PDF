@@ -1,8 +1,6 @@
 services:
   stirling-pdf:
     environment:
-      AIENGINE_ENABLED: "true"
-      AIENGINE_URL: "http://stirling-engine:5001"
       AIENGINE_PUSHCONFIGTOENGINE: "true"
       AIENGINE_MODELS_PROVIDER: "custom"
       AIENGINE_MODELS_SMARTMODEL: "${AI_SMART_MODEL:?Set AI_SMART_MODEL}"
@@ -22,7 +20,7 @@ services:
   stirling-engine:
     container_name: stirling-engine
     build:
-      context: "${STIRLING_SOURCE_DIR:-/home/runner/work/Stirling-PDF/Stirling-PDF}"
+      context: "${STIRLING_SOURCE_DIR:?Set STIRLING_SOURCE_DIR to the checked-out repository}"
       dockerfile: engine/Dockerfile
     image: "stirling-pdf-engine:2.14.3-local"
     restart: unless-stopped

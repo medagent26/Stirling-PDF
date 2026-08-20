@@ -6,6 +6,7 @@ After=docker.service
 [Service]
 Type=oneshot
 ExecStart=/opt/stirling-pdf/bin/backup.sh
+TimeoutStartSec=0
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

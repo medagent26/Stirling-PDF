@@ -154,10 +154,16 @@ install_configuration() {
   install -o root -g root -m 0644 "$BUNDLE_DIR/compose.ai.yml" "$DEPLOY_ROOT/compose.ai.yml"
   install -o root -g root -m 0644 \
     "$BUNDLE_DIR/systemd/stirling-pdf-ai.conf" "$DEPLOY_ROOT/stirling-pdf-ai.conf"
+  local settings_temporary
+  settings_temporary="$(mktemp)"
+  sed "s|https://stirling-pdf\\.example-tailnet\\.ts\\.net|${public_url}|g" \
+    "$BUNDLE_DIR/settings.yml" >"$settings_temporary"
   install -o "$STIRLING_UID" -g "$STIRLING_GID" -m 0640 \
-    "$BUNDLE_DIR/settings.yml" "$DATA_ROOT/config/settings.yml"
+    "$settings_temporary" "$DATA_ROOT/config/settings.yml"
+  rm -f "$settings_temporary"
   install -o root -g root -m 0750 "$BUNDLE_DIR/scripts/backup.sh" "$DEPLOY_ROOT/bin/backup.sh"
   install -o root -g root -m 0750 "$BUNDLE_DIR/scripts/restore-backup.sh" "$DEPLOY_ROOT/bin/restore-backup.sh"
+  install -o root -g root -m 0750 "$BUNDLE_DIR/scripts/set-ai-mode.sh" "$DEPLOY_ROOT/bin/set-ai-mode.sh"
   install -o root -g root -m 0750 "$BUNDLE_DIR/scripts/smoke-test.sh" "$DEPLOY_ROOT/bin/smoke-test.sh"
 
   if [ ! -e "$DEPLOY_ROOT/.env" ]; then
